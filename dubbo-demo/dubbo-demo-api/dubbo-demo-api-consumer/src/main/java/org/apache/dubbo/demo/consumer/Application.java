@@ -34,19 +34,30 @@ public class Application {
     }
 
     private static void runWithBootstrap() {
+        /**
+         * 服务端通过ServiceConfig将自己的接口实现暴露出去
+         * 客户端通过ReferenceConfig提出自己要调用哪个接口的实现
+         * ReferenceConfig本身是属于要调用的其他服务实例的引用的配置
+         * 通过泛型传递要调用哪个接口
+         */
         ReferenceConfig<DemoService> reference = new ReferenceConfig<>();
         reference.setInterface(DemoService.class);
         reference.setGeneric("true");
 
+        // consumer本身也是一个服务实例
         DubboBootstrap bootstrap = DubboBootstrap.getInstance();
         bootstrap
-                .application(new ApplicationConfig("dubbo-demo-api-consumer"))
-                .registry(new RegistryConfig(REGISTRY_URL))
+                .application(new ApplicationConfig("dubbo-demo-api-consumer"))  // 要调用的服务名
+                .registry(new RegistryConfig(REGISTRY_URL))                           // 注册中心地址
                 .protocol(new ProtocolConfig(CommonConstants.TRIPLE, -1))
                 .reference(reference)
                 .start();
 
+        // 这里就通过注册中心拿到了一个DemoService接口的实现类的实例，但是这个demoService其实是一个动态代理对象（JDK动态代理）
         DemoService demoService = bootstrap.getCache().get(reference);
+        // 调用动态代理的方法，这个生成动态代理的动作应该是在Consumer端完成的？
+        // 在Consumer端先给自己返回一个动态代理对象，等真正调用方法的时候调用h.invoke()
+        // 这个invoke方法中应该是向远程服务端发起一个网络请求
         String message = demoService.sayHello("dubbo");
         System.out.println(message);
 
