@@ -208,10 +208,12 @@ public class DefaultApplicationDeployer extends AbstractDeployer<ApplicationMode
      */
     @Override
     public void initialize() {
+        // 如果已经被初始化过了，直接返回
         if (initialized) {
             return;
         }
         // Ensure that the initialization is completed when concurrent calls
+        // 加锁防止多线程并发
         synchronized (startLock) {
             if (initialized) {
                 return;
@@ -219,8 +221,10 @@ public class DefaultApplicationDeployer extends AbstractDeployer<ApplicationMode
             onInitialize();
 
             // register shutdown hook
+            // 注册了一个销毁的钩子，当线程结束之前运行，具体的钩子函数见DubboShutdownHook类
             registerShutdownHook();
 
+            // 启动配置中心，实际啥都没干
             startConfigCenter();
 
             loadApplicationConfigs();
@@ -235,6 +239,7 @@ public class DefaultApplicationDeployer extends AbstractDeployer<ApplicationMode
             initObservationRegistry();
 
             // @since 2.7.8
+            // 元数据中心
             startMetadataCenter();
 
             initialized = true;
@@ -262,6 +267,9 @@ public class DefaultApplicationDeployer extends AbstractDeployer<ApplicationMode
         configManager.loadConfigs();
     }
 
+    /**
+     * dubbo启动时由initialize函数调用，启动配置中心的方法
+     */
     private void startConfigCenter() {
 
         // load application config
@@ -275,6 +283,7 @@ public class DefaultApplicationDeployer extends AbstractDeployer<ApplicationMode
         // load config centers
         configManager.loadConfigsOfTypeFromProps(ConfigCenterConfig.class);
 
+        // 如果有必要的话把注册中心当作配置中心
         useRegistryAsConfigCenterIfNecessary();
 
         // check Config Center
@@ -357,9 +366,10 @@ public class DefaultApplicationDeployer extends AbstractDeployer<ApplicationMode
             return;
         }
 
-        // load registry
+        // load registry，拿到配置中心的配置
         configManager.loadConfigsOfTypeFromProps(RegistryConfig.class);
 
+        // 如果没设置配置中心，这里就直接跳出了
         List<RegistryConfig> defaultRegistries = configManager.getDefaultRegistries();
         if (!defaultRegistries.isEmpty()) {
             defaultRegistries.stream()
@@ -703,8 +713,10 @@ public class DefaultApplicationDeployer extends AbstractDeployer<ApplicationMode
                 // started -> starting : re-start app
                 onStarting();
 
+                // 初始化工作，这里面加了锁，防止多线程并发
                 initialize();
 
+                // 正式将服务暴露出去
                 doStart();
             } catch (Throwable e) {
                 onFailed(getIdentifier() + " start failure", e);
@@ -761,6 +773,9 @@ public class DefaultApplicationDeployer extends AbstractDeployer<ApplicationMode
         //        });
     }
 
+    /**
+     * 启动服务的核心代码
+     */
     private void startModules() {
         // ensure init and start internal module first
         prepareInternalModule();

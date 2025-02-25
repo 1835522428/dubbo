@@ -227,6 +227,7 @@ public final class DubboBootstrap {
      * @return
      */
     public DubboBootstrap start(boolean wait) {
+        // 进入start方法，启动dubbo服务器
         Future future = applicationDeployer.start();
         if (wait) {
             try {

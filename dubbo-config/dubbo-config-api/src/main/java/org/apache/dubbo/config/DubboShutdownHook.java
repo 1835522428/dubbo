@@ -33,6 +33,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.apache.dubbo.common.constants.LoggerCodeConstants.CONFIG_FAILED_SHUTDOWN_HOOK;
 
 /**
+ * 这个类本质上就是一个线程销毁的钩子，继承了Thread类
+ * 将一个线程注册称为钩子时，在程序结束之前，会开启一个线程执行这个Thread类
+ * 执行的内容就是run方法，在这个run方法中又调用了doDestroy
  * The shutdown hook thread to do the cleanup stuff.
  * This is a singleton in order to ensure there is only one shutdown hook registered.
  * Because {@link ApplicationShutdownHooks} use {@link java.util.IdentityHashMap}
@@ -79,6 +82,7 @@ public class DubboShutdownHook extends Thread {
                 logger.info("Run shutdown hook now.");
             }
 
+            // 执行销毁函数
             doDestroy();
         }
     }
@@ -145,6 +149,7 @@ public class DubboShutdownHook extends Thread {
 
     /**
      * Register the ShutdownHook
+     * 在启动Dubbo服务时，初始化initialize函数中调用，用于注册销毁钩子
      */
     public void register() {
         if (!ignoreListenShutdownHook && registered.compareAndSet(false, true)) {
